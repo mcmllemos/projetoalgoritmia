@@ -2,10 +2,6 @@
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h>
-lololol
-#ifdef RUN_TESTS
-extern int call_tests(void);
-#endif
 
 // Lê um inteiro com verificação de entrada
 int leInteiro(const char *mensagem) {
@@ -68,10 +64,10 @@ void imprimirTabuleiro(char **tabuleiro, int linhas, int colunas) {
 }
 
 // Modifica uma casa do tabuleiro
-void modificarCasa(char **tabuleiro, int linha, int coluna, int acao) {
-    if (acao == 1 && islower(tabuleiro[linha][coluna])) {
+void modificarCasa(char **tabuleiro, int linha, int coluna, char acao) {
+    if (acao == 'm' && islower(tabuleiro[linha][coluna])) {
         tabuleiro[linha][coluna] = toupper(tabuleiro[linha][coluna]);
-    } else if (acao == 2) {
+    } else if (acao == 'c') {
         tabuleiro[linha][coluna] = '#';
     }
 }
@@ -83,50 +79,136 @@ void liberarTabuleiro(char **tabuleiro, int linhas) {
     free(tabuleiro);
 }
 
-// Função principal
-int main(void) {
+void copiarTabuleiro(char **src, char **dest, int linhas, int colunas) {
+    for (int i = 0; i < linhas; i++) {
+        for (int j = 0; j < colunas; j++) {
+            dest[i][j] = src[i][j];
+        }
+    }
+}
 
-    #ifdef RUN_TESTS
-        if(call_tests() == 0) printf("\nTest was sucessful\n");
-    #else
-    int linhas = leInteiro("Digite o número de linhas: ");
-    int colunas = leInteiro("Digite o número de colunas: ");
+#define MAX_HISTORY 100
+
+typedef struct {
+    char **tabuleiro;
+    int linhas;
+    int colunas;
+} EstadoTabuleiro;
+
+EstadoTabuleiro history[MAX_HISTORY];
+int history_size = 0;
+
+void salvarEstado(char **tabuleiro, int linhas, int colunas) {
+    if (history_size < MAX_HISTORY) {
+        // Cria uma cópia do tabuleiro atual
+        history[history_size].tabuleiro = criarTabuleiro(linhas, colunas);
+        copiarTabuleiro(tabuleiro, history[history_size].tabuleiro, linhas, colunas);
+        history[history_size].linhas = linhas;
+        history[history_size].colunas = colunas;
+        history_size++;
+    }
+}
+
+void desfazerUltimaJogada(char **tabuleiro, int *linhas, int *colunas) {
+    if (history_size > 0) {
+        history_size--;
+        copiarTabuleiro(history[history_size].tabuleiro, tabuleiro, history[history_size].linhas, history[history_size].colunas);
+        *linhas = history[history_size].linhas;
+        *colunas = history[history_size].colunas;
+        liberarTabuleiro(history[history_size].tabuleiro, history[history_size].linhas);
+    } else {
+        printf("Nenhuma jogada para desfazer.\n");
+    }
+}
+
+// Função principal
+
+
+int main() {
+    char **tabuleiro = NULL;
+    int linhas = 0, colunas = 0;
+    int lin, col;
+    char cond;
+    int opcao;
 
     srand(time(NULL));
-    char **tabuleiro = criarTabuleiro(linhas, colunas);
-    if (!tabuleiro) {
-        printf("Erro ao alocar memória.\n");
-        return 1;
-    }
 
-    preencherTabuleiro(tabuleiro, linhas, colunas);
-
-    int opcao;
     do {
-        imprimirTabuleiro(tabuleiro, linhas, colunas);
-        printf("\nMenu:\n");
-        printf("1 - Transformar letra em maiúscula\n");
-        printf("2 - Riscar uma casa (#)\n");
+        printf("\nMenu\n");
+        printf("1 - Jogar\n");
+        printf("2 - Comandos\n");
         printf("0 - Sair\n");
-        opcao = leInteiro("Escolha uma opção: ");
+        printf("Escolha uma opção: ");
+        scanf("%d", &opcao);
 
-        if (opcao == 1 || opcao == 2) {
-            int lin = leInteiro("Informe a linha: ");
-            int col = leInteiro("Informe a coluna: ");
-            if (lin >= 0 && lin < linhas && col >= 0 && col < colunas) {
-                modificarCasa(tabuleiro, lin, col, opcao);
-            } else {
-                printf("Posição inválida!\n");
+        while (getchar() != '\n');
+
+        if (opcao == 1) {
+            linhas = leInteiro("Digite o número de linhas: ");
+            colunas = leInteiro("Digite o número de colunas: ");
+
+            tabuleiro = criarTabuleiro(linhas, colunas);
+            if (!tabuleiro) {
+                printf("Erro ao alocar memória.\n");
+                return 1;
             }
-        }
 
+            preencherTabuleiro(tabuleiro, linhas, colunas);
+            
+
+            int continuar = 1;
+            do {
+                imprimirTabuleiro(tabuleiro, linhas, colunas);
+               
+                printf("Informe a condição, linha e a coluna (ou 0 para sair): ");
+
+                char entrada[20];
+                fgets(entrada, sizeof(entrada), stdin);
+
+                if (entrada[0] == '0' && entrada[1] == '\n') {
+                    continuar = 0;
+                } else if (entrada[0] == 'd' && entrada[1] == '\n') {
+                    desfazerUltimaJogada(tabuleiro, &linhas, &colunas);
+                } else {
+                    if (sscanf(entrada, "%c %d %d", &cond, &lin, &col) != 3) {
+                        printf("Entrada inválida! Tente de novo.\n");
+                    } else if (lin >= 0 && lin < linhas && col >= 0 && col < colunas) {
+                        salvarEstado(tabuleiro, linhas, colunas);
+                        modificarCasa(tabuleiro, lin, col, cond);
+                    } else {
+                        printf("Posição inválida!\n");
+                    }
+                }
+                
+                
+                printf("Histórico de jogadas: %d\n", history_size);
+                
+                
+                
+            } while (continuar);
+
+            printf("\nEstado final do tabuleiro:\n");
+            imprimirTabuleiro(tabuleiro, linhas, colunas);
+            liberarTabuleiro(tabuleiro, linhas);
+            tabuleiro = NULL;
+        }
+        
+        if (opcao == 2) {
+            printf("\ng - guardar jogo\n");
+            printf("l - ler estado de jogo de um ficheiro\n");
+            printf("b - substituir por maiúsculas\n");
+            printf("r - substituir por #\n");
+            printf("v - verificar o estado do jogo e apontar todas as restrições violadas\n");
+            printf("a - ajuda\n");
+            printf("d - desfazer a ultima jogada\n");
+            printf("s - sair para o menu\n");
+            printf("A - invocar o comando a enquanto o jogo sofrer alterações\n");
+            printf("R - resolver jogo\n");
+            getchar();
+        }
+        
+        
     } while (opcao != 0);
 
-    printf("\nEstado final do tabuleiro:\n");
-    imprimirTabuleiro(tabuleiro, linhas, colunas);
-
-    liberarTabuleiro(tabuleiro, linhas);
-    printf("\n");
-    #endif
     return 0;
 }
