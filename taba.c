@@ -68,6 +68,10 @@ void modificarCasa(char **tabuleiro, int linha, int coluna, int acao) {
         tabuleiro[linha][coluna] = toupper(tabuleiro[linha][coluna]);
     } else if (acao == 2) {
         tabuleiro[linha][coluna] = '#';
+        tabuleiro[linha + 1][coluna] = toupper(tabuleiro[linha + 1][coluna]);
+        tabuleiro[linha - 1][coluna] = toupper(tabuleiro[linha - 1][coluna]);
+        tabuleiro[linha][coluna + 1] = toupper(tabuleiro[linha][coluna + 1]);
+        tabuleiro[linha][coluna - 1] = toupper(tabuleiro[linha][coluna - 1]);
     }
 }
 
