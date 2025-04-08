@@ -158,6 +158,16 @@ void verificaRegras(char **tabuleiro, int l, int c) {
             }
         }
     }
+    for (i = 0; i < l; i++) {
+        for (j = 0; j < c; j++) {
+            for (k = j + 1; k < c; k++) {
+                if (tabuleiro[i][j] != '#' && tabuleiro[i][k] != '#' && toupper(tabuleiro[i][j]) == toupper(tabuleiro[i][k])) {
+                    printf("Repetição '%c' na linha '%d'\n", tabuleiro[i][j], i );
+                    return;
+                }
+            }
+        }
+    }
 }
 
 
