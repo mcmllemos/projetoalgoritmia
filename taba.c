@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -63,15 +62,59 @@ void imprimirTabuleiro(char **tabuleiro, int linhas, int colunas) {
     }
 }
 
-void modificarCasa(char **tabuleiro, int linha, int coluna, int acao) {
-    if (acao == 1 && islower(tabuleiro[linha][coluna])) {
-        tabuleiro[linha][coluna] = toupper(tabuleiro[linha][coluna]);
+void modificarCasa(char **tabuleiro, char **tabuleiro_original, int linha, int coluna, int acao, int linhas, int colunas) {
+    int count_hashC = 0;
+    int count_hashB = 0;
+    int count_hashE = 0;
+    int count_hashD = 0;
+
+    // Mudar o caractere para maiúsculo ou minúsculo
+    if (acao == 1) {
+        if (islower(tabuleiro[linha][coluna])) {
+            tabuleiro[linha][coluna] = toupper(tabuleiro[linha][coluna]);
+        } else if (isupper(tabuleiro[linha][coluna])) {
+            tabuleiro[linha][coluna] = tolower(tabuleiro[linha][coluna]);
+        }
+    }
+
+    // Contar '#' ao redor
+    if (linha + 2 < linhas && tabuleiro[linha + 2][coluna] == '#') count_hashC++;
+    if (linha + 1 < linhas && coluna - 1 >= 0 && tabuleiro[linha + 1][coluna - 1] == '#') count_hashC++;
+    if (linha + 1 < linhas && coluna + 1 < colunas && tabuleiro[linha + 1][coluna + 1] == '#') count_hashC++;
+
+    if (linha - 2 >= 0 && tabuleiro[linha - 2][coluna] == '#') count_hashB++;
+    if (linha - 1 >= 0 && coluna - 1 >= 0 && tabuleiro[linha - 1][coluna - 1] == '#') count_hashB++;
+    if (linha - 1 >= 0 && coluna + 1 < colunas && tabuleiro[linha - 1][coluna + 1] == '#') count_hashB++;
+
+    if (coluna + 2 < colunas && tabuleiro[linha][coluna + 2] == '#') count_hashE++;
+    if (linha - 1 >= 0 && coluna + 1 < colunas && tabuleiro[linha - 1][coluna + 1] == '#') count_hashE++;
+    if (linha + 1 < linhas && coluna + 1 < colunas && tabuleiro[linha + 1][coluna + 1] == '#') count_hashE++;
+
+    if (coluna - 2 >= 0 && tabuleiro[linha][coluna - 2] == '#') count_hashD++;
+    if (linha - 1 >= 0 && coluna - 1 >= 0 && tabuleiro[linha - 1][coluna - 1] == '#') count_hashD++;
+    if (linha + 1 < linhas && coluna - 1 >= 0 && tabuleiro[linha + 1][coluna - 1] == '#') count_hashD++;
+
+    // Lógica de modificação dependendo da ação
+    if (acao == 2 && tabuleiro[linha][coluna] == '#') {
+        tabuleiro[linha][coluna] = tabuleiro_original[linha][coluna];
+        if (linha + 1 < linhas && count_hashC == 0) {
+            tabuleiro[linha + 1][coluna] = tolower(tabuleiro[linha + 1][coluna]);
+        }
+        if (linha - 1 >= 0 && count_hashB == 0) {
+            tabuleiro[linha - 1][coluna] = tolower(tabuleiro[linha - 1][coluna]);
+        }
+        if (coluna + 1 < colunas && count_hashE == 0) {
+            tabuleiro[linha][coluna + 1] = tolower(tabuleiro[linha][coluna + 1]);
+        }
+        if (coluna - 1 >= 0 && count_hashD == 0) {
+            tabuleiro[linha][coluna - 1] = tolower(tabuleiro[linha][coluna - 1]);
+        }
     } else if (acao == 2) {
         tabuleiro[linha][coluna] = '#';
-        tabuleiro[linha + 1][coluna] = toupper(tabuleiro[linha + 1][coluna]);
-        tabuleiro[linha - 1][coluna] = toupper(tabuleiro[linha - 1][coluna]);
-        tabuleiro[linha][coluna + 1] = toupper(tabuleiro[linha][coluna + 1]);
-        tabuleiro[linha][coluna - 1] = toupper(tabuleiro[linha][coluna - 1]);
+        if (linha + 1 < linhas) tabuleiro[linha + 1][coluna] = toupper(tabuleiro[linha + 1][coluna]);
+        if (linha - 1 >= 0) tabuleiro[linha - 1][coluna] = toupper(tabuleiro[linha - 1][coluna]);
+        if (coluna + 1 < colunas) tabuleiro[linha][coluna + 1] = toupper(tabuleiro[linha][coluna + 1]);
+        if (coluna - 1 >= 0) tabuleiro[linha][coluna - 1] = toupper(tabuleiro[linha][coluna - 1]);
     }
 }
 
@@ -175,6 +218,7 @@ int main(void) {
     mkdir("saves", 0777);
     int linhas = 0, colunas = 0;
     char **tabuleiro = NULL;
+    char **tabuleiro_original = NULL; //
     char **tabuleiroAnterior = NULL;
     int opcao = -1;
 
@@ -241,6 +285,7 @@ int main(void) {
                     } else {
                         fscanf(fp, "%d %d\n", &linhas, &colunas);
                         tabuleiro = criarTabuleiro(linhas, colunas);
+                        tabuleiro_original = criarTabuleiro(linhas, colunas);
                         tabuleiroAnterior = criarTabuleiro(linhas, colunas);
                         for (int i = 0; i < linhas; i++) {
                             for (int j = 0; j < colunas; j++) {
@@ -250,6 +295,7 @@ int main(void) {
                         }
                         fclose(fp);
                         copiarTabuleiro(tabuleiroAnterior, tabuleiro, linhas, colunas);
+                        copiarTabuleiro(tabuleiro_original, tabuleiro, linhas, colunas);
                     }
                 }
             }
@@ -260,12 +306,14 @@ int main(void) {
         linhas = leInteiro("Digite o número de linhas: ");
         colunas = leInteiro("Digite o número de colunas: ");
         tabuleiro = criarTabuleiro(linhas, colunas);
+        tabuleiro_original = criarTabuleiro(linhas, colunas);
         tabuleiroAnterior = criarTabuleiro(linhas, colunas);
         if (!tabuleiro || !tabuleiroAnterior) {
             printf("Erro ao alocar memória.\n");
             return 1;
         }
         preencherTabuleiro(tabuleiro, linhas, colunas);
+        copiarTabuleiro(tabuleiro_original, tabuleiro, linhas, colunas);
         copiarTabuleiro(tabuleiroAnterior, tabuleiro, linhas, colunas);
     }
 
@@ -306,10 +354,10 @@ int main(void) {
                     if (lin >= 0 && lin < linhas && col >= 0 && col < colunas) {
                         copiarTabuleiro(tabuleiroAnterior, tabuleiro, linhas, colunas);
                         if (acao == 'b') {
-                            modificarCasa(tabuleiro, lin, col, 1);
+                            modificarCasa(tabuleiro,tabuleiro_original, lin, col, 1, linhas, colunas);
                             primeiraVez = 0;
                         } else if (acao == 'r') {
-                            modificarCasa(tabuleiro, lin, col, 2);
+                            modificarCasa(tabuleiro,tabuleiro_original, lin, col, 2, linhas, colunas);
                             primeiraVez = 0;
                         } else {
                             printf("Ação inválida!\n");
@@ -331,5 +379,7 @@ int main(void) {
     imprimirTabuleiro(tabuleiro, linhas, colunas);
     liberarTabuleiro(tabuleiro, linhas);
     liberarTabuleiro(tabuleiroAnterior, linhas);
+    liberarTabuleiro(tabuleiro_original, linhas); //
     return 0;
 }
+
